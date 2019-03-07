@@ -232,51 +232,40 @@
             //            break;
         }else if(bytesRead == 0){
             log4cplus_warn("UNetPing", "ping %s , receive icmp packet error , bytesRead=0",[self.hostList[self.hostArrayIndex] UTF8String]);
-        }else{
-            
-            if ([UCNetDiagnosisHelper isValidPingResponseWithBuffer:(char *)buffer len:(int)bytesRead]) {
-                
-                UICMPPacket *icmpPtr = (UICMPPacket *)[UCNetDiagnosisHelper icmpInpacket:(char *)buffer andLen:(int)bytesRead];
-                
-                NSTimeInterval duration = 0.0;
-                int seq = OSSwapBigToHostInt16(icmpPtr->seq);
-                
-                NSDate *date = [self getSendIcmpPacketDateFromContainerWithSeq:seq];
-                duration = [[NSDate date] timeIntervalSinceDate:date];
-                
-                int ttl = ((UCIPHeader *)buffer)->timeToLive;
+        }else if ([UCNetDiagnosisHelper isValidPingResponseWithBuffer:(char *)buffer len:(int)bytesRead]){
+            UICMPPacket *icmpPtr = (UICMPPacket *)[UCNetDiagnosisHelper icmpInpacket:(char *)buffer andLen:(int)bytesRead];
+            NSTimeInterval duration = 0.0;
+            int seq = OSSwapBigToHostInt16(icmpPtr->seq);
+            NSDate *date = [self getSendIcmpPacketDateFromContainerWithSeq:seq];
+            duration = [[NSDate date] timeIntervalSinceDate:date];
+            int ttl = ((UCIPHeader *)buffer)->timeToLive;
 //                uint8_t *p_sorce = ((UCIPHeader *)buffer)->sourceAddress;
 //                uint8_t *p_dst = ((UCIPHeader *)buffer)->destinationAddress;
 //                NSString *sorceIp = [NSString stringWithFormat:@"%d.%d.%d.%d",*p_sorce, *(p_sorce+1), *(p_sorce+2), *(p_sorce+3)];
 //                NSString *destIp = [NSString stringWithFormat:@"%d.%d.%d.%d",*p_dst, *(p_dst+1),*(p_dst+2), *(p_dst+3)];
-                NSString *destIp = devicePublicIp;
-                int size = (int)(bytesRead-sizeof(UCIPHeader));
-                NSString *sorceIp = self.hostList[self.hostArrayIndex];
-                
-//                NSLog(@"ping res: srcIP:%d.%d.%d.%d --> desIP:%d.%d.%d.%d ,size:%d , ttl:%d ,icmpID:%d, timeMillseconds:%f ,seq:%d",*p_sorce, *(p_sorce+1), *(p_sorce+2), *(p_sorce+3), *p_dst, *(p_dst+1),*(p_dst+2), *(p_dst+3),size,ttl,OSSwapBigToHostInt16(icmpPtr->identifier),duration * 1000,seq);
-                
-//                log4cplus_warn("UNetPing", "srcIP:%d.%d.%d.%d --> desIP:%d.%d.%d.%d ,size:%d , ttl:%d ,icmpID:%d, timeMillseconds:%f ,seq:%d",*p_sorce, *(p_sorce+1), *(p_sorce+2), *(p_sorce+3), *p_dst, *(p_dst+1),*(p_dst+2), *(p_dst+3),size,ttl,OSSwapBigToHostInt16(icmpPtr->identifier),duration * 1000,seq);
-                
-                
-//                log4cplus_info("UNetPing", "ping %s , receive icmp packet..\n",[self.hostList[self.hostArrayIndex] UTF8String]);
-                [self reporterPingResWithSorceIp:sorceIp destinationIp:destIp ttl:ttl timeMillSecond:duration*1000 seq:seq icmpId:OSSwapBigToHostInt16(icmpPtr->identifier) dataSize:size pingStatus:UCPingStatus_ReceivePacket];
-                
-                
-                ping_recev_index++;
-                if (ping_recev_index == 5) {
-                    
-                    log4cplus_info("UNetPing", "done ping , ip:%s \n",[self.hostList[self.hostArrayIndex] UTF8String]);
-                    [self reporterPingResWithSorceIp:sorceIp destinationIp:destIp ttl:ttl timeMillSecond:duration*1000 seq:seq icmpId:OSSwapBigToHostInt16(icmpPtr->identifier) dataSize:size pingStatus:UCPingStatus_Finish];
-                    
-                    close(socket_client);
-                    res = YES;
-                    break;
-                    
-                }
-            }
+            NSString *destIp = devicePublicIp;
+            int size = (int)(bytesRead-sizeof(UCIPHeader));
+            NSString *sorceIp = self.hostList[self.hostArrayIndex];
             
+//                NSLog(@"ping res: srcIP:%d.%d.%d.%d --> desIP:%d.%d.%d.%d ,size:%d , ttl:%d ,icmpID:%d, timeMillseconds:%f ,seq:%d",*p_sorce, *(p_sorce+1), *(p_sorce+2), *(p_sorce+3), *p_dst, *(p_dst+1),*(p_dst+2), *(p_dst+3),size,ttl,OSSwapBigToHostInt16(icmpPtr->identifier),duration * 1000,seq);
+            
+//                log4cplus_warn("UNetPing", "srcIP:%d.%d.%d.%d --> desIP:%d.%d.%d.%d ,size:%d , ttl:%d ,icmpID:%d, timeMillseconds:%f ,seq:%d",*p_sorce, *(p_sorce+1), *(p_sorce+2), *(p_sorce+3), *p_dst, *(p_dst+1),*(p_dst+2), *(p_dst+3),size,ttl,OSSwapBigToHostInt16(icmpPtr->identifier),duration * 1000,seq);
+            
+            
+//                log4cplus_info("UNetPing", "ping %s , receive icmp packet..\n",[self.hostList[self.hostArrayIndex] UTF8String]);
+            
+            [self reporterPingResWithSorceIp:sorceIp destinationIp:destIp ttl:ttl timeMillSecond:duration*1000 seq:seq icmpId:OSSwapBigToHostInt16(icmpPtr->identifier) dataSize:size pingStatus:UCPingStatus_ReceivePacket];
+            ping_recev_index++;
+            if (ping_recev_index == 5) {
+                log4cplus_info("UNetPing", "done ping , ip:%s \n",[self.hostList[self.hostArrayIndex] UTF8String]);
+                [self reporterPingResWithSorceIp:sorceIp destinationIp:destIp ttl:ttl timeMillSecond:duration*1000 seq:seq icmpId:OSSwapBigToHostInt16(icmpPtr->identifier) dataSize:size pingStatus:UCPingStatus_Finish];
+                
+                close(socket_client);
+                res = YES;
+                break;
+                
+            }
         }
-        
         usleep(500);
     }
     return res;
